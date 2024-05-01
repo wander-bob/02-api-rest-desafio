@@ -2,12 +2,12 @@ import type { Knex } from "knex";
 
 
 export async function up(knex: Knex): Promise<void> {
-  await knex.schema.createTable('users', (table)=>{
-    table.uuid('id').primary();
+  await knex.schema.createTableIfNotExists('users',(table)=>{
+    table.uuid('id').defaultTo(knex.fn.uuid());
     table.text('name').notNullable();
-    table.text('email').notNullable().unique();
+    table.text('email').notNullable();
     table.text('password').notNullable();
-    table.timestamp('created_at').defaultTo(knex.raw(`(datetime('now', 'localtime'))`)).notNullable();
+    table.text('created_at').defaultTo(knex.fn.now());
   })
 }
 

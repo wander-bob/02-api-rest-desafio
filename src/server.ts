@@ -1,9 +1,10 @@
 import { fastify } from 'fastify';
+import { usersRoutes } from './routes/users.routes';
 
 const app = fastify();
 
-app.get('/', (request, reply)=>{
-    reply.send('Bye')
+app.register(usersRoutes, {
+  prefix: '/users'
 })
 
 app.listen({
