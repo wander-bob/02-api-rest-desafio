@@ -3,6 +3,7 @@ import { FastifyInstance } from 'fastify';
 import { compare, hash } from 'bcrypt';
 import { z } from 'zod';
 import { knex } from '../lib/database';
+import { validateSessionId } from '../middleware/validate-session-id';
 
 
 export async function usersRoutes(app:FastifyInstance){
@@ -44,9 +45,9 @@ export async function usersRoutes(app:FastifyInstance){
   app.get('/', async (request, reply)=>{
     const sessionId = request.cookies.session_id;
     if(!sessionId){
-      throw new Error('unauthorized access')
+      return reply.status(401).send({error: 'Unauthorized access'})
     }
-    const users = await knex('users').where('session_id', sessionId);
-    return reply.send(users)
+    const user = await validateSessionId(sessionId);
+    return reply.status(201).send(user)
   })
 }
