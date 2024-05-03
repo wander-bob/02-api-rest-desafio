@@ -36,18 +36,18 @@ export async function usersRoutes(app:FastifyInstance){
     user.session_id = sessionId;
     
     await knex('users').update(user).where({id: user.id});
-    
+    const currentDate = new Date();
+    const cookieMaxAgeInMinutes = (5 * 60 * 1000) - (3 * 60 * 60 * 1000);
+    currentDate.setTime(currentDate.getTime() + cookieMaxAgeInMinutes)
     reply.setCookie('session_id', sessionId, {
       path: '/',
-      maxAge: 60 * 60 * 24 * 7 // 7 days
+      expires: currentDate,
     })
   })
   app.get('/', async (request, reply)=>{
+    await validateSessionId(request, reply);
     const sessionId = request.cookies.session_id;
-    if(!sessionId){
-      return reply.status(401).send({error: 'Unauthorized access'})
-    }
-    const user = await validateSessionId(sessionId);
-    return reply.status(201).send(user)
+    const userData = await knex('users').select('id', 'name', 'email', 'created_at', ).where('session_id', sessionId).first();
+    return reply.send({user: userData})
   })
 }
