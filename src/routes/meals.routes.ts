@@ -72,4 +72,36 @@ export async function mealsRoutes(app: FastifyInstance){
     await knex('meals').delete().where({id})
     return reply.status(204).send();
   });
+  app.get('/metrics', async (request, reply)=> {
+    const sessionId = request.cookies.session_id;
+    const user = await knex('users').select('id').where('session_id', sessionId).first();
+    if(!user){
+      return reply.status(401).send('Unauthorized access.')
+    }
+    const meals = await knex('meals').where('user_id', user.id).orderBy('created_at');
+    const totalOnDiet = await knex('meals').where({user_id: user.id, is_on_diet: true}).count('id', {as: 'total'}).first();
+    const totalOffDiet = await knex('meals').where({user_id: user.id, is_on_diet: false}).count('id', {as: 'total'}).first();
+    const {bestDietStreak} = meals.reduce((acc, meal) => {
+      if(meal.is_on_diet){
+          acc.currentStreak += 1;
+      }else{
+          acc.currentStreak = 0;
+      }
+      if(acc.bestDietStreak < acc.currentStreak){
+          acc.bestDietStreak = acc.currentStreak;
+      }
+      return acc
+      },
+      { bestDietStreak: 0, currentStreak: 0 },
+    )
+
+    const metrics = {
+      total: meals.length, 
+      totalOnDiet: totalOnDiet?.total,
+      totalOffDiet: totalOffDiet?.total,
+      bestDietStreak,
+    }
+    reply.send(metrics)
+  });
+
 }
